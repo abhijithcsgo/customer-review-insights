@@ -27,7 +27,7 @@ Support and product teams receive unstructured customer feedback that is hard to
 | ORM | EF Core 9.0.10 + SQL Server provider | Migrations included |
 | AI | Google Gemini REST API | Default model `gemini-3.5-flash-lite` |
 | API docs | Swashbuckle / Swagger | Development only |
-| Tests | xUnit, Moq, EF InMemory | 20 tests |
+| Tests | xUnit, Moq, EF InMemory | 29 tests |
 
 ## Architecture overview
 

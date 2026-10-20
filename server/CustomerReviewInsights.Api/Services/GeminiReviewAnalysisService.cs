@@ -7,6 +7,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 using CustomerReviewInsights.Api.Configuration;
 using CustomerReviewInsights.Api.DTOs;
+using CustomerReviewInsights.Api.Exceptions;
 
 namespace CustomerReviewInsights.Api.Services;
 
@@ -29,13 +30,13 @@ public class GeminiReviewAnalysisService(
         var apiKeyConfigured = !string.IsNullOrWhiteSpace(_options.ApiKey);
         if (!apiKeyConfigured)
         {
-            throw new InvalidOperationException(
+            throw new ReviewAnalysisException(
                 "Gemini API key is not configured. Set Gemini:ApiKey via user secrets or environment variables.");
         }
 
-        // Keep the API key out of logged URIs by attaching it only on the request, never in log templates.
+        // Send the key in a header so HttpClient request logs and exception messages cannot include it in the URL.
         var requestUri =
-            $"{_options.BaseUrl.TrimEnd('/')}/models/{_options.Model}:generateContent?key={Uri.EscapeDataString(_options.ApiKey)}";
+            $"{_options.BaseUrl.TrimEnd('/')}/models/{Uri.EscapeDataString(_options.Model)}:generateContent";
         var payload = BuildRequestPayload(reviewText);
         var stopwatch = Stopwatch.StartNew();
 
@@ -49,6 +50,7 @@ public class GeminiReviewAnalysisService(
         using var content = new StringContent(payload, Encoding.UTF8, "application/json");
         using var request = new HttpRequestMessage(HttpMethod.Post, requestUri) { Content = content };
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.TryAddWithoutValidation("x-goog-api-key", _options.ApiKey);
 
         HttpResponseMessage response;
         try
@@ -72,7 +74,7 @@ public class GeminiReviewAnalysisService(
                 _options.Model,
                 stopwatch.ElapsedMilliseconds,
                 _options.TimeoutSeconds);
-            throw new InvalidOperationException(
+            throw new ReviewAnalysisException(
                 $"The AI analysis service timed out using model '{_options.Model}'. Try again or configure a faster Gemini model.",
                 ex);
         }
@@ -83,7 +85,7 @@ public class GeminiReviewAnalysisService(
                 "Gemini API network failure for model {Model} after {ElapsedMs}ms.",
                 _options.Model,
                 stopwatch.ElapsedMilliseconds);
-            throw new InvalidOperationException("Unable to reach the AI analysis service.", ex);
+            throw new ReviewAnalysisException("Unable to reach the AI analysis service.", ex);
         }
 
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -102,8 +104,8 @@ public class GeminiReviewAnalysisService(
                 "Gemini API rate limit for model {Model}. Status {StatusCode}. ProviderMessage: {ProviderMessage}",
                 _options.Model,
                 (int)response.StatusCode,
-                providerMessage);
-            throw new InvalidOperationException("AI analysis is temporarily rate-limited. Please try again shortly.");
+                RedactSecrets(providerMessage));
+            throw new ReviewAnalysisException("AI analysis is temporarily rate-limited. Please try again shortly.");
         }
 
         if (!response.IsSuccessStatusCode)
@@ -112,10 +114,10 @@ public class GeminiReviewAnalysisService(
                 "Gemini API error for model {Model}. Status {StatusCode}. ProviderMessage: {ProviderMessage}. BodyLength: {Length}",
                 _options.Model,
                 (int)response.StatusCode,
-                providerMessage,
+                RedactSecrets(providerMessage),
                 responseBody.Length);
 
-            throw new InvalidOperationException(BuildClientErrorMessage(response.StatusCode, providerMessage));
+            throw new ReviewAnalysisException(BuildClientErrorMessage(response.StatusCode, providerMessage));
         }
 
         var modelText = ExtractModelText(responseBody);
@@ -161,7 +163,8 @@ public class GeminiReviewAnalysisService(
                 }
 
                 // Avoid logging oversized payloads; never include request review text here.
-                return text.Length <= 500 ? text : text[..500] + "…";
+                var bounded = text.Length <= 500 ? text : text[..500] + "…";
+                return RedactSecrets(bounded);
             }
         }
         catch (JsonException)
@@ -242,28 +245,57 @@ public class GeminiReviewAnalysisService(
 
     private static string ExtractModelText(string responseBody)
     {
-        using var document = JsonDocument.Parse(responseBody);
-        var root = document.RootElement;
-
-        if (!root.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)
+        try
         {
-            throw new InvalidOperationException("AI response did not include any candidates.");
+            using var document = JsonDocument.Parse(responseBody);
+            var root = document.RootElement;
+
+            if (!root.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)
+            {
+                throw new ReviewAnalysisException("AI response did not include any candidates.");
+            }
+
+            var first = candidates[0];
+            if (!first.TryGetProperty("content", out var content) ||
+                !content.TryGetProperty("parts", out var parts) ||
+                parts.GetArrayLength() == 0 ||
+                !parts[0].TryGetProperty("text", out var textElement))
+            {
+                throw new ReviewAnalysisException("AI response did not include text content.");
+            }
+
+            var text = textElement.GetString();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                throw new ReviewAnalysisException("AI response text was empty.");
+            }
+
+            return text;
+        }
+        catch (ReviewAnalysisException)
+        {
+            throw;
+        }
+        catch (JsonException ex)
+        {
+            throw new ReviewAnalysisException("AI response was not valid JSON.", ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new ReviewAnalysisException("AI response did not include text content.", ex);
+        }
+    }
+
+    private static string? RedactSecrets(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return value;
         }
 
-        var first = candidates[0];
-        if (!first.TryGetProperty("content", out var content) ||
-            !content.TryGetProperty("parts", out var parts) ||
-            parts.GetArrayLength() == 0)
-        {
-            throw new InvalidOperationException("AI response did not include text content.");
-        }
-
-        var text = parts[0].GetProperty("text").GetString();
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            throw new InvalidOperationException("AI response text was empty.");
-        }
-
-        return text;
+        return System.Text.RegularExpressions.Regex.Replace(
+            value,
+            @"(?i)\b((?:api[_-]?)?key|password|pwd)\s*=\s*[^&\s""']+",
+            "$1=[redacted]");
     }
 }

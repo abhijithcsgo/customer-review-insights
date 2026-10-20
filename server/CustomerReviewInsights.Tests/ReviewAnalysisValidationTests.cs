@@ -1,4 +1,5 @@
 using CustomerReviewInsights.Api.DTOs;
+using CustomerReviewInsights.Api.Exceptions;
 using CustomerReviewInsights.Api.Services;
 
 namespace CustomerReviewInsights.Tests;
@@ -30,7 +31,7 @@ public class ReviewAnalysisValidationTests
     [InlineData("   ")]
     public void Validate_Rejects_Invalid_Sentiment(string sentiment)
     {
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<ReviewAnalysisException>(() =>
             ReviewAnalysisValidation.Validate(new ReviewAnalysisResult
             {
                 Sentiment = sentiment,
@@ -46,7 +47,7 @@ public class ReviewAnalysisValidationTests
     [InlineData("")]
     public void Validate_Rejects_Invalid_Category(string category)
     {
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<ReviewAnalysisException>(() =>
             ReviewAnalysisValidation.Validate(new ReviewAnalysisResult
             {
                 Sentiment = "Negative",
@@ -62,7 +63,7 @@ public class ReviewAnalysisValidationTests
     {
         var summary = "This summary intentionally contains more than ten words in total now";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<ReviewAnalysisException>(() =>
             ReviewAnalysisValidation.Validate(new ReviewAnalysisResult
             {
                 Sentiment = "Neutral",

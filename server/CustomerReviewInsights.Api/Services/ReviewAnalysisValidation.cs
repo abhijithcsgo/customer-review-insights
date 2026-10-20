@@ -1,5 +1,6 @@
 using System.Text.Json;
 using CustomerReviewInsights.Api.DTOs;
+using CustomerReviewInsights.Api.Exceptions;
 using CustomerReviewInsights.Api.Models;
 
 namespace CustomerReviewInsights.Api.Services;
@@ -10,7 +11,7 @@ public static class ReviewAnalysisValidation
     {
         if (string.IsNullOrWhiteSpace(json))
         {
-            throw new InvalidOperationException("AI response was empty.");
+            throw new ReviewAnalysisException("AI response was empty.");
         }
 
         ReviewAnalysisResult? parsed;
@@ -23,12 +24,12 @@ public static class ReviewAnalysisValidation
         }
         catch (JsonException ex)
         {
-            throw new InvalidOperationException("AI response was not valid JSON.", ex);
+            throw new ReviewAnalysisException("AI response was not valid JSON.", ex);
         }
 
         if (parsed is null)
         {
-            throw new InvalidOperationException("AI response could not be deserialized.");
+            throw new ReviewAnalysisException("AI response could not be deserialized.");
         }
 
         return Validate(parsed);
@@ -38,41 +39,41 @@ public static class ReviewAnalysisValidation
     {
         if (string.IsNullOrWhiteSpace(result.Sentiment))
         {
-            throw new InvalidOperationException("AI response is missing sentiment.");
+            throw new ReviewAnalysisException("AI response is missing sentiment.");
         }
 
         if (!ReviewAnalysisConstants.AllowedSentiments.Contains(result.Sentiment))
         {
-            throw new InvalidOperationException($"AI returned an unsupported sentiment: '{result.Sentiment}'.");
+            throw new ReviewAnalysisException("AI returned an unsupported sentiment.");
         }
 
         if (string.IsNullOrWhiteSpace(result.Category))
         {
-            throw new InvalidOperationException("AI response is missing category.");
+            throw new ReviewAnalysisException("AI response is missing category.");
         }
 
         if (!ReviewAnalysisConstants.AllowedCategories.Contains(result.Category))
         {
-            throw new InvalidOperationException($"AI returned an unsupported category: '{result.Category}'.");
+            throw new ReviewAnalysisException("AI returned an unsupported category.");
         }
 
         if (string.IsNullOrWhiteSpace(result.Summary))
         {
-            throw new InvalidOperationException("AI response is missing summary.");
+            throw new ReviewAnalysisException("AI response is missing summary.");
         }
 
         var trimmedSummary = result.Summary.Trim();
         if (trimmedSummary.Length > ReviewAnalysisConstants.MaxSummaryLength)
         {
-            throw new InvalidOperationException(
+            throw new ReviewAnalysisException(
                 $"AI summary exceeds {ReviewAnalysisConstants.MaxSummaryLength} characters.");
         }
 
         var wordCount = CountWords(trimmedSummary);
         if (wordCount > ReviewAnalysisConstants.MaxSummaryWords)
         {
-            throw new InvalidOperationException(
-                $"AI summary must contain at most {ReviewAnalysisConstants.MaxSummaryWords} words (received {wordCount}).");
+            throw new ReviewAnalysisException(
+                $"AI summary must contain at most {ReviewAnalysisConstants.MaxSummaryWords} words.");
         }
 
         return new ReviewAnalysisResult

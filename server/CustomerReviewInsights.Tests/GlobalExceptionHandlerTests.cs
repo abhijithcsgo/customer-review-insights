@@ -60,14 +60,14 @@ public class GlobalExceptionHandlerTests
     }
 
     [Fact]
-    public async Task InvalidOperationException_returns_502_with_safe_detail()
+    public async Task ReviewAnalysisException_returns_502_with_safe_detail()
     {
         var handler = new GlobalExceptionHandler(NullLogger<GlobalExceptionHandler>.Instance);
         var context = CreateHttpContext();
 
         var handled = await handler.TryHandleAsync(
             context,
-            new InvalidOperationException("The AI analysis service timed out. Please try again."),
+            new ReviewAnalysisException("The AI analysis service timed out. Please try again."),
             CancellationToken.None);
 
         Assert.True(handled);
@@ -77,6 +77,50 @@ public class GlobalExceptionHandlerTests
         Assert.NotNull(payload);
         Assert.Equal("Review analysis failed.", payload.Error);
         Assert.Equal("The AI analysis service timed out. Please try again.", payload.Detail);
+    }
+
+    [Fact]
+    public async Task InvalidOperationException_returns_500_without_internal_message()
+    {
+        var handler = new GlobalExceptionHandler(NullLogger<GlobalExceptionHandler>.Instance);
+        var context = CreateHttpContext();
+
+        var handled = await handler.TryHandleAsync(
+            context,
+            new InvalidOperationException("Connection string Server=prod;Password=hunter2 was rejected."),
+            CancellationToken.None);
+
+        Assert.True(handled);
+        Assert.Equal(StatusCodes.Status500InternalServerError, context.Response.StatusCode);
+
+        var body = await ReadBodyAsync(context);
+        var payload = JsonSerializer.Deserialize<ApiErrorResponse>(body, JsonOptions);
+
+        Assert.NotNull(payload);
+        Assert.Equal("An unexpected error occurred.", payload.Error);
+        Assert.Equal("An unexpected error occurred while processing the request.", payload.Detail);
+        Assert.DoesNotContain("hunter2", body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Password", body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Connection string", body, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Client_abort_is_handled_without_a_500_body()
+    {
+        var handler = new GlobalExceptionHandler(NullLogger<GlobalExceptionHandler>.Instance);
+        var context = CreateHttpContext();
+        context.RequestAborted = new CancellationToken(canceled: true);
+
+        var handled = await handler.TryHandleAsync(
+            context,
+            new OperationCanceledException(context.RequestAborted),
+            context.RequestAborted);
+
+        Assert.True(handled);
+        Assert.NotEqual(StatusCodes.Status500InternalServerError, context.Response.StatusCode);
+
+        var body = await ReadBodyAsync(context);
+        Assert.Equal(string.Empty, body);
     }
 
     private static DefaultHttpContext CreateHttpContext()

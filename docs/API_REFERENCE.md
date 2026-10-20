@@ -130,7 +130,7 @@ Common error body shape (`ApiErrorResponse`):
 | --- | --- | --- |
 | `400` | Model validation or `ArgumentException` (empty / too long) | `Validation failed.` / `Invalid review.` |
 | `502` | Gemini missing key, timeout, provider error, invalid AI JSON | `Review analysis failed.` |
-| `500` | Unexpected server error | `Unable to create the review.` |
+| `500` | Unexpected server or database failure. The response does not include the exception message. | `An unexpected error occurred.` |
 
 **Example validation failure (`400`):**
 

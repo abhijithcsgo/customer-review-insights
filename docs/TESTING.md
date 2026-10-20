@@ -29,6 +29,8 @@ dotnet test .\server\CustomerReviewInsights.Tests\CustomerReviewInsights.Tests.c
 | `CreateReviewRequestValidationTests.cs` | Required text, max length (5,000), valid payload |
 | `ReviewAnalysisValidationTests.cs` | Sentiment/category allow-lists, summary word count, JSON parse success/failure |
 | `ReviewServiceTests.cs` | Persist after mocked AI success; **no** persist when AI throws; newest-first ordering |
+| `GlobalExceptionHandlerTests.cs` | Safe 500 body, 400 validation, 502 analysis failure, no leaked internal messages, client abort |
+| `ReviewsApiExceptionIntegrationTests.cs` | Pipeline returns 500/404/502 and hides sensitive exception text in Development and Production |
 
 External dependencies for automated tests:
 
@@ -40,12 +42,12 @@ External dependencies for automated tests:
 Successful run looks like:
 
 ```text
-Passed!  - Failed: 0, Passed: 20, Skipped: 0, Total: 20
+Passed!  - Failed: 0, Passed: 29, Skipped: 0, Total: 29
 ```
 
 A non-zero exit code means one or more tests failed. Open the failing assertion message for details.
 
-> Documentation note: the suite was executed successfully in this environment with **20 passed**. Re-run locally after changes.
+> Documentation note: the suite was executed successfully in this environment with **29 passed**. Re-run locally after changes.
 
 ## Frontend checks (not unit-tested)
 

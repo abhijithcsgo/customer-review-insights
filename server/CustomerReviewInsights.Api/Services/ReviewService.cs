@@ -7,8 +7,7 @@ namespace CustomerReviewInsights.Api.Services;
 
 public class ReviewService(
     AppDbContext dbContext,
-    IReviewAnalysisService analysisService,
-    ILogger<ReviewService> logger) : IReviewService
+    IReviewAnalysisService analysisService) : IReviewService
 {
     public async Task<IReadOnlyList<ReviewResponse>> GetAllAsync(CancellationToken cancellationToken = default)
     {
@@ -57,16 +56,7 @@ public class ReviewService(
         };
 
         dbContext.CustomerReviews.Add(entity);
-
-        try
-        {
-            await dbContext.SaveChangesAsync(cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to persist customer review.");
-            throw new InvalidOperationException("Unable to save the review. Please try again later.");
-        }
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return ReviewResponse.FromEntity(entity);
     }

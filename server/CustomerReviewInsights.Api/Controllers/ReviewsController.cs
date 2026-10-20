@@ -46,8 +46,8 @@ public class ReviewsController(IReviewService reviewService) : ControllerBase
         [FromBody] CreateReviewRequest request,
         CancellationToken cancellationToken)
     {
-        // ArgumentException (validation) and InvalidOperationException (Gemini/DB)
-        // are mapped by GlobalExceptionHandler to 400/502. Unexpected exceptions → 500.
+        // ArgumentException (validation) → 400. ReviewAnalysisException (Gemini) → 502.
+        // Database and other unexpected exceptions → 500 via GlobalExceptionHandler.
         var created = await reviewService.CreateAsync(request, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }

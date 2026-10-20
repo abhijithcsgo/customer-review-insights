@@ -8,7 +8,7 @@
 | Frontend Gemini exposure | Not present | Key must remain backend-only |
 | `client/.env` on disk | Local file; ignored by `.gitignore` | Do not commit; contains no Gemini key by design (API URL only) |
 | Connection string in `appsettings.json` | Local Windows auth template (`Trusted_Connection`) | Replace for production; do not commit SQL passwords |
-| Git tracked secrets | **0 tracked files** at inspection time (no commits yet) | Before first push, ensure `client/.env` stays untracked |
+| Git tracked secrets | None in the tracked tree. `appsettings.json` has an empty Gemini key and a local Windows-auth connection string (no password). | `client/.env` stays untracked and only sets `VITE_API_BASE_URL` |
 | CORS | Localhost origins only | Narrow to real origins in production |
 
 ## Handling accidental secret exposure

@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using CustomerReviewInsights.Api.Data;
 using CustomerReviewInsights.Api.DTOs;
+using CustomerReviewInsights.Api.Exceptions;
 using CustomerReviewInsights.Api.Models;
 using CustomerReviewInsights.Api.Services;
 
@@ -24,7 +24,7 @@ public class ReviewServiceTests
                 Summary = "App crashes opening order history"
             });
 
-        var service = new ReviewService(db, analysis.Object, NullLogger<ReviewService>.Instance);
+        var service = new ReviewService(db, analysis.Object);
 
         var created = await service.CreateAsync(new CreateReviewRequest
         {
@@ -44,11 +44,11 @@ public class ReviewServiceTests
         var analysis = new Mock<IReviewAnalysisService>();
         analysis
             .Setup(s => s.AnalyzeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("AI analysis failed."));
+            .ThrowsAsync(new ReviewAnalysisException("AI analysis failed."));
 
-        var service = new ReviewService(db, analysis.Object, NullLogger<ReviewService>.Instance);
+        var service = new ReviewService(db, analysis.Object);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<ReviewAnalysisException>(() =>
             service.CreateAsync(new CreateReviewRequest
             {
                 ReviewText = "This should not be saved."
@@ -81,7 +81,7 @@ public class ReviewServiceTests
         await db.SaveChangesAsync();
 
         var analysis = new Mock<IReviewAnalysisService>();
-        var service = new ReviewService(db, analysis.Object, NullLogger<ReviewService>.Instance);
+        var service = new ReviewService(db, analysis.Object);
 
         var reviews = await service.GetAllAsync();
 
