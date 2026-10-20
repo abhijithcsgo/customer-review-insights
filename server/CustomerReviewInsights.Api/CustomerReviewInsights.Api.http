@@ -1,0 +1,21 @@
+@CustomerReviewInsights_HostAddress = http://localhost:5056
+
+### Get all reviews
+GET {{CustomerReviewInsights_HostAddress}}/api/reviews
+Accept: application/json
+
+###
+
+### Get review by id
+GET {{CustomerReviewInsights_HostAddress}}/api/reviews/1
+Accept: application/json
+
+###
+
+### Create a review
+POST {{CustomerReviewInsights_HostAddress}}/api/reviews
+Content-Type: application/json
+
+{
+  "reviewText": "The application crashes whenever I open order history."
+}

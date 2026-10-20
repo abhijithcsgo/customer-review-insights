@@ -1,0 +1,25 @@
+Use these sample reviews for manual end-to-end testing:
+
+1. Positive / Usability
+"The new dashboard is clean and easy to navigate. I found everything I needed within a minute."
+
+2. Negative / Bug
+"The application crashes whenever I open order history. I lose my place every time."
+
+3. Neutral / Pricing
+"The product works fine overall, but the monthly price feels a bit high for our team size."
+
+4. Negative / Usability
+"Checkout is confusing. Too many steps and I almost abandoned my cart twice."
+
+5. Positive / Feature Request
+"Love the reporting tools. Please add CSV export so we can share results with finance."
+
+6. Neutral / Other
+"Support replied eventually. The answer was okay, nothing special."
+
+7. Negative / Pricing
+"We were charged twice after upgrading. Billing needs a clear refund path."
+
+8. Positive / Bug (resolved feel)
+"After the latest patch, the sync issue is gone and uploads finish quickly."

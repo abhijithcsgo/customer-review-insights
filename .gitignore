@@ -1,0 +1,62 @@
+# --- OS ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Editors / IDEs ---
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.ntvs*
+*.njsproj
+*.swp
+*.sw?
+
+# --- Logs ---
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --- Environment / secrets ---
+# Ignore local env files, but keep committed examples.
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+**/secrets.json
+**/appsettings.*.local.json
+
+# --- Node / React / Vite ---
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# --- .NET / ASP.NET Core ---
+**/bin/
+**/obj/
+**/publish/
+**/.vs/
+**/TestResults/
+**/[Bb]uild/
+**/[Dd]ebug/
+**/[Rr]elease/
+*.user
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Local EF / tooling noise
+*.db
+*.db-shm
+*.db-wal
